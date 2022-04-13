@@ -16,6 +16,7 @@ module.exports = {
   ],
   'rules': {
     'max-len': ['off'],
+    'object-curly-spacing': ['error', 'always'],
     'require-jsdoc': ['off'], // todo: remove this later when the project is ready for active documentation
   },
 };

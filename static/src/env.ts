@@ -1,4 +1,4 @@
-import {load} from 'ts-dotenv';
+import { load } from 'ts-dotenv';
 
 export default load({
   NODE_ENV: [
