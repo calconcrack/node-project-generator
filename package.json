@@ -1,0 +1,28 @@
+{
+  "name": "project-generator",
+  "version": "1.0.0",
+  "description": "Project for generating any node app having predefined boilerplate",
+  "main": "index.js",
+  "scripts": {
+    "test": "node index"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/calconcrack/node-project-generator.git"
+  },
+  "keywords": [
+    "node",
+    "generator",
+    "generate",
+    "boilerplate",
+    "initiator",
+    "initiate",
+    "init"
+  ],
+  "author": "lyadhGod",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/calconcrack/node-project-generator/issues"
+  },
+  "homepage": "https://github.com/calconcrack/node-project-generator#readme"
+}
