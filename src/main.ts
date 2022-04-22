@@ -4,9 +4,19 @@ import inquirer from 'inquirer';
 import fs from 'fs-extra';
 import NodeProjectGeneratorError, { nodeProjectGeneratorErrorConsoler } from './NodeProjectGeneratorError';
 
+/**
+ * * filesystem path to the app's 'generated' folder
+ */
 const generatedPath = resolve(rootPath, 'generated');
+
+/**
+ * * filesystem path to the app's 'static' folder
+ */
 const staticPath = resolve(rootPath, 'static');
 
+/**
+ * * main async function running the core script
+ */
 (async function() {
   let projectName = '';
   try {
@@ -18,22 +28,22 @@ const staticPath = resolve(rootPath, 'static');
   const projectPath = resolve(generatedPath, projectName);
 
   try {
-    await fs.ensureDir(projectPath);
+    await ensureProjectPath(projectPath);
   } catch (err) {
-    nodeProjectGeneratorErrorConsoler(err);
-
     return;
   }
 
   try {
-    await fs.copy(staticPath, projectPath);
+    await copyToProjectPath(staticPath, projectPath);
   } catch (err) {
-    nodeProjectGeneratorErrorConsoler(err);
-
     return;
   }
 })();
 
+/**
+ * * ask user the name of the project to be genearted
+ * @return {Promise<string>} name of the project
+ */
 async function inquireProjectName() {
   try {
     const { projectName } = await inquirer.prompt([{
@@ -46,7 +56,36 @@ async function inquireProjectName() {
       throw new NodeProjectGeneratorError('No project name specificed');
     }
 
-    return projectName;
+    return projectName as string;
+  } catch (err) {
+    nodeProjectGeneratorErrorConsoler(err);
+
+    throw err;
+  }
+}
+
+/**
+ * * check if the project path exists and create if it doesn't
+ * @param {string} projectPath filesystem path of the project
+ */
+async function ensureProjectPath(projectPath: string) {
+  try {
+    await fs.ensureDir(projectPath);
+  } catch (err) {
+    nodeProjectGeneratorErrorConsoler(err);
+
+    throw err;
+  }
+}
+
+/**
+ * * copy contents of static path to the project path
+ * @param {string} staticPath filesystem path of the static content
+ * @param {string} projectPath filesystem path of the project
+ */
+async function copyToProjectPath(staticPath: string, projectPath: string) {
+  try {
+    await fs.copy(staticPath, projectPath);
   } catch (err) {
     nodeProjectGeneratorErrorConsoler(err);
 

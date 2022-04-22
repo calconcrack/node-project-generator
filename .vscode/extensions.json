@@ -4,6 +4,7 @@
     "ms-vscode-remote.vscode-remote-extensionpack",
     "shd101wyy.markdown-preview-enhanced",
     "eg2.vscode-npm-script",
-    "christian-kohler.npm-intellisense"
+    "christian-kohler.npm-intellisense",
+    "aaron-bond.better-comments"
   ]
 }
