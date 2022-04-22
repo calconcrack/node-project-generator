@@ -3,6 +3,14 @@ import { resolve } from 'path';
 import inquirer from 'inquirer';
 import fs from 'fs-extra';
 import NodeProjectGeneratorError, { nodeProjectGeneratorErrorConsoler } from './NodeProjectGeneratorError';
+import { promisify } from 'util';
+import { exec as execWithCallback } from 'child_process';
+
+/**
+ * * promisified exec from child_process
+ */
+// eslint-disable-next-line no-unused-vars
+const exec = promisify(execWithCallback);
 
 /**
  * * filesystem path to the app's 'generated' folder
@@ -18,45 +26,83 @@ const staticPath = resolve(rootPath, 'static');
  * * main async function running the core script
  */
 (async function() {
-  let projectName = '';
+  let projectDetails: IProjectDetails;
   try {
-    projectName = await inquireProjectName();
+    projectDetails = await inquireProjectDetails();
   } catch (err) {
     return;
   }
 
-  const projectPath = resolve(generatedPath, projectName);
+  const projectDetailsExtended: IProjectDetailsExtended = {
+    ...projectDetails,
+    path: resolve(generatedPath, projectDetails.name),
+  };
 
   try {
-    await ensureProjectPath(projectPath);
+    await ensureProjectPath(projectDetailsExtended.path);
   } catch (err) {
     return;
   }
 
   try {
-    await copyToProjectPath(staticPath, projectPath);
+    await copyToProjectPath(staticPath, projectDetailsExtended.path);
+  } catch (err) {
+    return;
+  }
+
+  try {
+    await generatePackageJson(projectDetailsExtended);
+  } catch (err) {
+    return;
+  }
+
+  try {
+    await installPackages(projectDetailsExtended);
   } catch (err) {
     return;
   }
 })();
 
 /**
- * * ask user the name of the project to be genearted
- * @return {Promise<string>} name of the project
+ * * ask user the details of the project to be generated
+ * @return {Promise<IProjectDetails>} name of the project
  */
-async function inquireProjectName() {
+async function inquireProjectDetails() {
   try {
-    const { projectName } = await inquirer.prompt([{
-      type: 'input',
-      name: 'projectName',
-      message: 'What is the name of the project?',
-    }]);
+    const projectDetails: IProjectDetails = await inquirer.prompt([
+      {
+        type: 'input',
+        name: 'name',
+        message: 'name?',
+      },
+      {
+        type: 'input',
+        name: 'version',
+        message: 'version?',
+        default: '0.1.0',
+      },
+      {
+        type: 'input',
+        name: 'description',
+        message: 'description?',
+      },
+      {
+        type: 'input',
+        name: 'author',
+        message: 'author?',
+      },
+      {
+        type: 'input',
+        name: 'license',
+        message: 'license?',
+      },
+    ]);
 
-    if (!projectName) {
-      throw new NodeProjectGeneratorError('No project name specificed');
+    if (!projectDetails.name) {
+      throw new NodeProjectGeneratorError('no project name specificed');
     }
 
-    return projectName as string;
+    return projectDetails;
   } catch (err) {
     nodeProjectGeneratorErrorConsoler(err);
 
@@ -70,7 +116,13 @@ async function inquireProjectName() {
  */
 async function ensureProjectPath(projectPath: string) {
   try {
-    await fs.ensureDir(projectPath);
+    const projectPathExists = await fs.pathExists(projectPath);
+
+    if (projectPathExists) {
+      throw new NodeProjectGeneratorError('project already exists at current path');
+    }
+
+    await fs.mkdirp(projectPath);
   } catch (err) {
     nodeProjectGeneratorErrorConsoler(err);
 
@@ -93,4 +145,63 @@ async function copyToProjectPath(staticPath: string, projectPath: string) {
   }
 }
 
+/**
+ * * generate package.json at project path
+ * @param {IProjectDetailsExtended} projectDetailsExtended project details required with extra fields
+ */
+async function generatePackageJson(projectDetailsExtended: IProjectDetailsExtended) {
+  const packageJSONPath = resolve(projectDetailsExtended.path, 'package.json');
+
+  const packageJSONContent = {
+    ...projectDetailsExtended,
+    path: undefined,
+    main: './src/index.ts',
+    scripts: {
+      'dev': 'ts-node ./src/index.ts',
+      'build': 'tsc',
+      'start': 'node ./dist/index.js',
+    },
+  };
+
+  try {
+    await fs.createFile(packageJSONPath);
+    await fs.appendFile(packageJSONPath, JSON.stringify(packageJSONContent, null, 2));
+  } catch (err) {
+    nodeProjectGeneratorErrorConsoler(err);
+
+    throw err;
+  }
+}
+
+/**
+ * * install npm packages
+ * @param {IProjectDetailsExtended} projectDetailsExtended project details required with extra fields
+ * todo: complete proper implementation
+ */
+async function installPackages(projectDetailsExtended: IProjectDetailsExtended) {
+  try {
+    await exec(`cd ${projectDetailsExtended.path}`);
+    await Promise.allSettled([
+      exec('npm i -D @types/app-root-path @typescript-eslint/eslint-plugin @typescript-eslint/parser eslint eslint-config-google ts-node typescript'),
+      exec('npm i app-root-path chalk ts-dotenv'),
+    ]);
+  } catch (err) {
+    nodeProjectGeneratorErrorConsoler(err);
+
+    throw err;
+  }
+}
+
 export default null;
+
+export interface IProjectDetails {
+  name: string;
+  version: string;
+  description: string;
+  author: string;
+  license: string;
+}
+
+export interface IProjectDetailsExtended extends IProjectDetails {
+  path: string;
+}
